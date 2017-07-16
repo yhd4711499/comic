@@ -8,6 +8,7 @@ required python modules:
 * sqlalchemy
 * js2py
 * pyquery
+* readline (if mac) or pyreadline (if windows)
 
 # Supported sources:
 

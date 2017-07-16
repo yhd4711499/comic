@@ -12,6 +12,7 @@ from tzlocal import get_localzone
 from libs.comic_downloader import Host
 from .ComicInfo import ComicInfo
 from .StreamLine import *
+import logging
 
 UTF8_PARSER = HTMLParser(encoding='utf-8')
 
@@ -28,7 +29,7 @@ class DmedenNetHost(Host):
     DATETIME_FORMAT = '%m/%d/%Y %I:%M:%S %p'
 
     HEADERS = {
-        'Cookie': 'ASP.NET_SessionId=2zgj4155gmlcsi554j4oum45'
+        'Cookie': 'ASP.NET_SessionId=dpcatcjtjjh2rp55wnlf0xur'
     }
 
     def __init__(self):
@@ -36,6 +37,7 @@ class DmedenNetHost(Host):
         self.__viewJsCtx = None
         self.__viewJsCtxLock = Lock()
         self.__cookies = None
+        self.__log = logging.getLogger("DmedenNet")
 
     def id(self):
         return 'dmeden.net'
@@ -138,8 +140,10 @@ class DmedenNetHost(Host):
                     try:
                         self.__viewJsCtx = self.__create_js_context(viewJsFile.read())
                         return self.__viewJsCtx
-                    except Exception:
+                    except Exception as e:
                         os.remove(DmedenNetHost.VIEW_JS_FILE_PATH)
+                        self.__log.error("failed to eval js: " + DmedenNetHost.VIEW_JS_FILE_PATH, e)
+                        raise e
             text = page.html()
             view_js_url = DmedenNetHost.VIEW_JS_URL_REGEX.search(text).group(1)
             js_content = self.request_raw(DmedenNetHost.BASE_URL + view_js_url, None)
@@ -208,8 +212,15 @@ class DmedenNetHost(Host):
     @staticmethod
     def __create_js_context(js_content):
         ctx = js2py.EvalJs({})
+        # 20170716 更新了一下解密算法，js里面，第一行用window属性的方式调用function，最终生成unsuan这个方法
         ctx.execute('''
-    var location = {'hostname': 'www.dmeden.com'}
-    ''')
-        ctx.execute(js_content)
+        var location = {'hostname': 'www.dmeden.com'}
+        var window = {
+            'eval': eval,
+            'String': String,
+            'parseInt': parseInt,
+            'RegExp': RegExp
+        }
+        ''')
+        ctx.execute(js_content.split("\n", 1)[0])
         return ctx
