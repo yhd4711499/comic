@@ -50,7 +50,7 @@ class Dm5Host(Host):
     VIEW_JS_FILE_PATH = Host.DIR_PATH + '/dm5chapternew.js'
     DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
         self.__viewJsCtx = None
         self.__viewJsCtxLock = Lock()

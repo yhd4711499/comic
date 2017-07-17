@@ -3,6 +3,7 @@ import os.path
 import re
 from datetime import datetime
 
+import urllib
 import js2py
 import pyquery
 import requests
@@ -29,14 +30,17 @@ class DmedenNetHost(Host):
     DATETIME_FORMAT = '%m/%d/%Y %I:%M:%S %p'
 
     HEADERS = {
-        'Cookie': 'ASP.NET_SessionId=dpcatcjtjjh2rp55wnlf0xur'
+        'Cookie': 'ASP.NET_SessionId=lh1d0subwprouo550tqrhu55'
     }
 
-    def __init__(self):
+    def __init__(self, config):
         super().__init__()
+        self.__config = config
+        self.__proxy = None
         self.__viewJsCtx = None
         self.__viewJsCtxLock = Lock()
         self.__cookies = None
+        self.__cookieGetLock = Lock()
         self.__log = logging.getLogger("DmedenNet")
 
     def id(self):
@@ -154,25 +158,34 @@ class DmedenNetHost(Host):
 
     def request(self, url, stream=False, params=None, timeout=10):
         self.__get_cookies()
-        return requests.get(url=url, stream=stream, params=params, timeout=timeout, headers=DmedenNetHost.HEADERS, cookies=self.__cookies)
+        return requests.get(proxies=self.__proxy, url=url, stream=stream, params=params, timeout=timeout, headers=DmedenNetHost.HEADERS, cookies=self.__cookies)
 
     def request_raw(self, url, params=None, stream=False, timeout=10):
         self.__get_cookies()
-        r = requests.get(url=url, stream=stream, params=params, timeout=10, headers=DmedenNetHost.HEADERS, cookies=self.__cookies)
+        r = requests.get(proxies=self.__proxy, url=url, stream=stream, params=params, timeout=10, headers=DmedenNetHost.HEADERS, cookies=self.__cookies)
         r.encoding = 'utf-8'
         r.raise_for_status()
         return r.text
 
     def request_html(self, url, params=None, timeout=10, parser=UTF8_PARSER):
         self.__get_cookies()
-        r = requests.get(url=url, params=params, timeout=timeout, headers=DmedenNetHost.HEADERS, cookies=self.__cookies)
+        r = requests.get(proxies=self.__proxy, url=url, params=params, timeout=timeout, headers=DmedenNetHost.HEADERS, cookies=self.__cookies)
         r.raise_for_status()
         return pyquery.PyQuery(fromstring(r.content, parser=parser))
 
     def __get_cookies(self):
-        pass
-        # r = requests.get(url=DmedenNetHost.BASE_URL)
-        # self.__cookies = r.cookies
+        with self.__cookieGetLock:
+            if self.__cookies is None:
+                proxy = self.__config['proxy']
+                if proxy is None:
+                    proxy = urllib.request.getproxies()
+                r = requests.get(proxies=proxy, url=DmedenNetHost.BASE_URL)
+                DmedenNetHost.HEADERS['Cookie'] = None
+                self.__cookies = r.cookies
+                if self.__config['proxy_strategy'] == 'ALL':
+                    self.__proxy = proxy
+                else:
+                    self.__proxy = None
 
     @staticmethod
     def __parse_comic_info_from_raw(url, lines):

@@ -54,7 +54,7 @@ def main():
     (options, args) = parser.parse_args()
 
     downloader = None
-    sources = [DmedenHost(), Dm5Host(), DmedenNetHost()]
+    config = None
 
     if options.config_path and os.path.isfile(options.config_path):
         with open(options.config_path, encoding='utf-8') as file:
@@ -63,6 +63,8 @@ def main():
                 args = [config['root_dir']]
             if 'source' in config and options.source is None:
                 options.source = config['source']
+
+    sources = [DmedenHost(config), Dm5Host(config), DmedenNetHost(config)]
 
     if options.source:
         for source in sources:
