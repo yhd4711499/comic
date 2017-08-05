@@ -53,7 +53,8 @@ class ComicInfo(object):
     def from_file(cls, json_file):
         info = cls()
         info.__dict__ = json.loads(json_file.read())
-        info.lastUpdateTime = datetime.strptime(info.lastUpdateTime, ComicInfo.ISO_FORMAT).replace(tzinfo=pytz.utc)
+        if hasattr(info, 'lastUpdateTime') and info.lastUpdateTime is not None:
+            info.lastUpdateTime = datetime.strptime(info.lastUpdateTime, ComicInfo.ISO_FORMAT).replace(tzinfo=pytz.utc)
         if hasattr(info, 'lastSyncTime') and info.lastSyncTime is not None:
             info.lastSyncTime = datetime.strptime(info.lastSyncTime, ComicInfo.ISO_FORMAT).replace(tzinfo=pytz.utc)
         return info

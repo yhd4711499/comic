@@ -80,7 +80,7 @@ def main():
         level = logging.DEBUG
     logging.basicConfig(level=level, format='%(levelname)s/%(asctime)s - %(message)s')
 
-    if len(args) == 1 or options.cli:
+    if options.cli:
         ctx = Context()
         MainStage(downloader).enter(ctx)
         return
@@ -89,7 +89,7 @@ def main():
         if len(args) == 0:
             print("error: output dir is missing!")
             sys.exit(2)
-        downloader.download([{'save_dir': args[0], 'id': options.id, 'url': options.url}], options.mode)
+        downloader.download([{'save_dir': os.path.expanduser(args[0]), 'id': options.id, 'url': options.url}], options.mode)
         return
 
     if options.search_title is not None:
@@ -99,11 +99,11 @@ def main():
         return
 
     if options.update_one is not None:
-        downloader.sync(options.update_one)
+        downloader.sync(os.path.expanduser(options.update_one))
         return
 
     if options.update_all is not None:
-        downloader.sync_all(options.update_all)
+        downloader.sync_all(os.path.expanduser(options.update_all))
         return
 
 

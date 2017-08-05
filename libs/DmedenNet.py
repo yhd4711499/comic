@@ -20,14 +20,13 @@ UTF8_PARSER = HTMLParser(encoding='utf-8')
 
 class DmedenNetHost(Host):
     LOCAL_TZ = get_localzone()
-    BASE_URL = "http://www.dmeden.net/"
+    BASE_URL = "http://www.popomh.com/"
     SEARCH_URL = "comic/?act=search"
-    VOLUME_URL_TEMPLATE_REGEX = re.compile('ID=(\d*).*&s=(\d*)')
-    PAGE_URL_TEMPLATE = "comichtml/%s/%s.html"
-    VOLUME_URL_TEMPLATE = "comicinfo/%s.html"
+    VOLUME_URL_TEMPLATE_REGEX = re.compile('/(\d*)\.html')
+    VOLUME_URL_TEMPLATE = "manhua/%s.html"
     VIEW_JS_URL_REGEX = re.compile('src=\"(.*?)\"')
     VIEW_JS_FILE_PATH = Host.DIR_PATH + '/view.js'
-    DATETIME_FORMAT = '%m/%d/%Y %I:%M:%S %p'
+    DATETIME_FORMAT = '%Y/%m/%d %H:%M:%S'
 
     HEADERS = {
         'Cookie': 'ASP.NET_SessionId=lh1d0subwprouo550tqrhu55'
@@ -90,11 +89,7 @@ class DmedenNetHost(Host):
 
     def fetch_all_pages_from_volume(self, volume_params, already_downloaded):
         first_page_url = DmedenNetHost.BASE_URL + volume_params['url']
-        reg = DmedenNetHost.VOLUME_URL_TEMPLATE_REGEX.search(first_page_url)
-        key_id = reg.group(1)
-        key_s = reg.group(2)
-        first_page = self.request_html(url=DmedenNetHost.BASE_URL + DmedenNetHost.PAGE_URL_TEMPLATE % (key_id, 1),
-                                       params={'s': key_s})
+        first_page = self.request_html(url=first_page_url)
 
         total_pages = len(first_page('div#iPageHtm a'))
 
@@ -106,10 +101,10 @@ class DmedenNetHost(Host):
                 i += 1
                 continue
 
-            page_url = DmedenNetHost.BASE_URL + DmedenNetHost.PAGE_URL_TEMPLATE % (key_id, i + 1)
+            page_url = re.sub(DmedenNetHost.VOLUME_URL_TEMPLATE_REGEX, "/%s.html" % (i + 1), first_page_url)
             page_params = {
                 'url': page_url,
-                'url_params': {'s': key_s},
+                'url_params': {},
                 'index': i,
                 'super': volume_params
             }
@@ -179,6 +174,8 @@ class DmedenNetHost(Host):
                 proxy = self.__config['proxy']
                 if proxy is None:
                     proxy = urllib.request.getproxies()
+                elif not proxy['enabled']:
+                    proxy = None
                 r = requests.get(proxies=proxy, url=DmedenNetHost.BASE_URL)
                 DmedenNetHost.HEADERS['Cookie'] = None
                 self.__cookies = r.cookies
@@ -202,12 +199,12 @@ class DmedenNetHost(Host):
                 if len(parts) == 2:
                     raw[parts[0]] = parts[1]
             info.author = raw['作者']
-            info.finished = raw['狀態'] == '完结'
-            info.rating = float(raw['評價'])
+            info.finished = raw['状态'] == '完结'
+            info.rating = float(raw['评价'])
 
             info.lastUpdateTime = datetime.strptime(raw['更新'], DmedenNetHost.DATETIME_FORMAT)
             info.lastUpdateTime = info.lastUpdateTime.replace(tzinfo=DmedenNetHost.LOCAL_TZ)
-            info.brief = raw['簡介']
+            info.brief = raw['简介']
         except Exception as e:
             print(e)
         return info

@@ -4,9 +4,7 @@ import os.path
 import re
 from datetime import datetime
 
-import pyquery
-import requests
-from lxml.html import HTMLParser, fromstring
+from lxml.html import HTMLParser
 from tzlocal import get_localzone
 
 from .ComicInfo import ComicInfo
@@ -103,18 +101,29 @@ class ComicDownloader:
         executor.shutdown()
 
     def __save_image(self, image_src, root, filename):
+        target_file_path = os.path.join(root, filename)
+        tmp_dir = os.path.join(root, ".downloadtmp")
+
+        if os.path.isfile(root):
+            os.remove(root)
         if not os.path.isdir(root):
             os.makedirs(root)
-        target_file_path = os.path.join(root, filename)
+        if os.path.isfile(tmp_dir):
+            os.remove(tmp_dir)
+        if not os.path.isdir(tmp_dir):
+            os.makedirs(tmp_dir)
+
+        tmp_file_path = os.path.join(tmp_dir, filename)
         r = self.__host.request(image_src, stream=True, timeout=(self.__connectTimeout, self.__downloadTimeout))
         r.raise_for_status()
         isfile = os.path.isfile(target_file_path)
         if isfile and int(r.headers['Content-Length']) - os.stat(target_file_path).st_size == 0:
             return
-        with open(target_file_path, 'wb') as f:
+        with open(tmp_file_path, 'wb') as f:
             r.raw.decode_content = True
             for chunk in r.iter_content(8192):
                 f.write(chunk)
+            os.rename(tmp_file_path, target_file_path)
 
     def __consume_sync_stream_line(self):
         sync_stream_line = self.__streamLinePool.get_stream_line(Lines.SYNC)
@@ -135,7 +144,7 @@ class ComicDownloader:
 
                     info_file_path = os.path.join(comic_root_dir, 'info.json')
 
-                    if not os.path.isfile(info_file_path):
+                    if not os.path.exists(info_file_path):
                         self.__log.debug("no comic info was found.")
                         name = os.path.basename(comic_root_dir)
                         if name.isdigit():
@@ -166,6 +175,8 @@ class ComicDownloader:
                         self.__log.error("invalid comic info file! exit.")
                         continue
                     if comic_info.finished and comic_info.has_synced():
+                        comic_info.lastSyncTime = self.__get_current_dt_local()
+                        ComicDownloader.__save_comic_info(comic_info, comic_root_dir)
                         continue
                     if 'id' not in comic_info.source and 'url' not in comic_info:
                         self.__log.error("invalid comic info %s: no [id] and [url]! exit." % comic_info.title)
@@ -178,6 +189,9 @@ class ComicDownloader:
                     })
 
                     if not comic_info.is_outdated(new_comic_info.lastUpdateTime):
+                        # update with new comic info
+                        new_comic_info.lastSyncTime = self.__get_current_dt_local()
+                        ComicDownloader.__save_comic_info(new_comic_info, comic_root_dir)
                         continue
                     comic_params = {
                         'save_dir': comic_root_dir,
@@ -217,9 +231,13 @@ class ComicDownloader:
                         })
                         comic_params['comic_info'] = comic_info
                         comic_params['html'] = html
+                        if 'sub_dir' not in comic_params:
+                            comic_params['sub_dir'] = True
                         ComicDownloader.__save_comic_info(comic_info, self.__get_comic_save_dir(comic_params))
                     else:
                         self.__log.info("add comic: " + comic_params['comic_info'].title)
+                        if 'sub_dir' not in comic_params:
+                            comic_params['sub_dir'] = True
                     volumes = self.__host.fetch_all_volumes(html=comic_params.get('html'), comic_params=comic_params)
                     if len(volumes) > 0:
                         volumes[-1]['last_one'] = True
