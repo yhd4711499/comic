@@ -224,7 +224,7 @@ class DmedenNetHost(Host):
         ctx = js2py.EvalJs({})
         # 20170716 更新了一下解密算法，js里面，第一行用window属性的方式调用function，最终生成unsuan这个方法
         ctx.execute('''
-        var location = {'hostname': 'www.dmeden.com'}
+        var location = {'hostname': 'www.popomh.com'}
         var window = {
             'eval': eval,
             'String': String,
@@ -232,5 +232,6 @@ class DmedenNetHost(Host):
             'RegExp': RegExp
         }
         ''')
-        ctx.execute(js_content.split("\n", 1)[0])
+        # todo: 只执行unsuan方法
+        ctx.execute('\n'.join(js_content.split("\n", 30)[0:30]))
         return ctx

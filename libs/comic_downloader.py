@@ -123,7 +123,7 @@ class ComicDownloader:
             r.raw.decode_content = True
             for chunk in r.iter_content(8192):
                 f.write(chunk)
-            os.rename(tmp_file_path, target_file_path)
+        os.rename(tmp_file_path, target_file_path)
 
     def __consume_sync_stream_line(self):
         sync_stream_line = self.__streamLinePool.get_stream_line(Lines.SYNC)

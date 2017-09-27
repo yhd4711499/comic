@@ -19,7 +19,7 @@ def main():
     parser.add_option("--cli", "--cli", action="store_true", dest="cli",
                       help="enter cli mode")
 
-    parser.add_option("-c", "--conf", dest="config_path", default="default.json", help="load config file")
+    parser.add_option("-c", "--conf", dest="config_path", default="default_config.json", help="load config file")
 
     download_group = OptionGroup(parser, "Download Options", "Download comic by its relative url or id.")
 
