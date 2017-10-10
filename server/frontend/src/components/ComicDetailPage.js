@@ -5,6 +5,9 @@ import React from "react";
 import {Link} from "react-router-dom";
 import MuiThemeProvider from "material-ui/styles/MuiThemeProvider";
 import {List, ListItem} from "material-ui/List";
+import AppBar from 'material-ui/AppBar';
+import IconButton from 'material-ui/IconButton';
+import NavigationBack from 'material-ui/svg-icons/navigation/arrow-back';
 
 const request = require('superagent');
 const superagentPromisePlugin = require('superagent-promise-plugin');
@@ -23,13 +26,11 @@ class VolumeCell extends React.Component {
 class ComicDetailPage extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {volumes: []};
+        this.state = {
+            volumes: [],
+            comic_info: {}
+        };
         this.comic_id = this.props.match.params.comic_id;
-        this.updateVolumes = this.updateVolumes.bind(this);
-    }
-
-    updateVolumes(volumes) {
-        this.setState({volumes: volumes});
     }
 
     loadVolumes() {
@@ -38,7 +39,10 @@ class ComicDetailPage extends React.Component {
             .use(superagentPromisePlugin)
             .then(function (res) {
                 let json = JSON.parse(res.text);
-                self.updateVolumes(json);
+                self.setState({
+                    volumes: json['volumes'],
+                    comic_info: json['comic_info']
+                });
             })
             .catch(function (err) {
             });
@@ -50,14 +54,9 @@ class ComicDetailPage extends React.Component {
 
     getTo(i) {
         const volumes = this.state.volumes;
-        const pathname = `/comic/${this.comic_id}/${volumes[i].title}`;
-        const query = {
-            list: volumes,
-            current: i
-        };
+        const pathname = `/comic/${this.comic_id}/${volumes[i].id}`;
         return {
-            pathname: pathname,
-            // query: query
+            pathname: pathname
         }
     }
 
@@ -67,13 +66,19 @@ class ComicDetailPage extends React.Component {
             return <div/>
         } else {
             return <MuiThemeProvider>
-                <List>
-                    {[...new Array(this.state.volumes.length)].map((x, i) =>
-                        <Link to={this.getTo(i)}>
-                            <VolumeCell title={volumes[i].title}/>
-                        </Link>
-                    )}
-                </List>
+                <div>
+                    <AppBar
+                        title={'Comic: ' + this.state.comic_info['title']}
+                        iconElementLeft={<IconButton><NavigationBack onClick={this.props.history.goBack}/></IconButton>}
+                    />
+                    <List>
+                        {[...new Array(this.state.volumes.length)].map((x, i) =>
+                            <Link to={this.getTo(i)}>
+                                <VolumeCell title={volumes[i].title}/>
+                            </Link>
+                        )}
+                    </List>
+                </div>
             </MuiThemeProvider>
         }
     }

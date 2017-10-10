@@ -6,7 +6,9 @@ import {Link} from "react-router-dom";
 import MuiThemeProvider from "material-ui/styles/MuiThemeProvider";
 import LinearProgress from "material-ui/LinearProgress";
 import {List, ListItem} from "material-ui/List";
-
+import AppBar from "material-ui/AppBar";
+import IconButton from "material-ui/IconButton";
+import NavigationBack from "material-ui/svg-icons/navigation/arrow-back";
 const request = require('superagent');
 const superagentPromisePlugin = require('superagent-promise-plugin');
 superagentPromisePlugin.Promise = require('es6-promise');
@@ -19,56 +21,111 @@ class VolumeBrowser extends React.Component {
             currentIndex: 0,
             showList: false,
             imageList: [],
-            progress: 0
+            progress: 0,
+            volumeTitle: "",
+            comic_id: this.props.match.params.comic_id,
+            volume_id: this.props.match.params.volume_id
         };
-        this.comic_id = this.props.match.params.comic_id;
-        this.volume_id = this.props.match.params.volume_id;
-        if (this.props.location.query) {
-            this.all_volumes = this.props.location.query['list'];
-            this.current_index = this.props.location.query['current'];
-        }
 
         this.showNext = this.showNext.bind(this);
         this.showPrevious = this.showPrevious.bind(this);
     }
 
     showNext() {
+        const self = this;
         if (this.state.currentIndex + 1 >= this.state.imageList.length) {
-            this.props.history.replace(`/comic/${this.comic_id}`);
+            request.get('/api/comics/next/' + this.state.comic_id + '/' + this.state.volume_id)
+                .use(superagentPromisePlugin)
+                .then(function (res) {
+                    let json = JSON.parse(res.text);
+                    if (json['id'] != undefined) {
+                        let images = json['images'].sort((v1, v2) => {
+                            return v1['index'] - v2['index']
+                        });
+                        self.setState({
+                            currentIndex: 0,
+                            showList: self.state.showList,
+                            imageList: images,
+                            volumeTitle: json['title'],
+                            comic_id: self.state.comic_id,
+                            volume_id: json['id']
+                        });
+                        self.props.history.replace(`/comic/${self.state.comic_id}/${json['id']}`);
+                    } else {
+                        self.props.history.replace(`/comic/${self.state.comic_id}`);
+                    }
+                })
+                .catch(function (err) {
+                    alert(err);
+                });
+
         } else {
             this.setState({
                 currentIndex: this.state.currentIndex + 1,
                 showList: this.state.showList,
-                imageList: this.state.imageList
+                imageList: this.state.imageList,
+                volumeTitle: this.state.volumeTitle,
+                comic_id: this.state.comic_id,
+                volume_id: this.state.volume_id
             });
         }
     }
 
     showPrevious() {
+        const self = this;
         if (this.state.currentIndex - 1 < 0) {
-            this.props.history.replace(`/comic/${this.comic_id}`);
+            request.get('/api/comics/previous/' + this.state.comic_id + '/' + this.state.volume_id)
+                .use(superagentPromisePlugin)
+                .then(function (res) {
+                    let json = JSON.parse(res.text);
+                    if (json.hasOwnProperty('id')) {
+                        let images = json['images'].sort((v1, v2) => {
+                            return v1['index'] - v2['index']
+                        });
+                        self.setState({
+                            currentIndex: images.length - 1,
+                            showList: self.state.showList,
+                            imageList: images,
+                            volumeTitle: json['title'],
+                            comic_id: self.state.comic_id,
+                            volume_id: json['id']
+                        });
+                        self.props.history.replace(`/comic/${self.state.comic_id}/${json['id']}`);
+                    } else {
+                        self.props.history.replace(`/comic/${self.state.comic_id}`);
+                    }
+                })
+                .catch(function (err) {
+                    alert(err);
+                });
         } else {
             this.setState({
                 currentIndex: this.state.currentIndex - 1,
                 showList: this.state.showList,
-                imageList: this.state.imageList
+                imageList: this.state.imageList,
+                volumeTitle: this.state.volumeTitle,
+                comic_id: this.state.comic_id,
+                volume_id: this.state.volume_id
             });
         }
     }
 
     loadPages() {
         const self = this;
-        request.get('/api/comics/' + this.comic_id + '/' + this.volume_id)
+        request.get('/api/comics/' + this.state.comic_id + '/' + this.state.volume_id)
             .use(superagentPromisePlugin)
             .then(function (res) {
                 let json = JSON.parse(res.text);
-                let images = json.sort((v1, v2) => {
+                let images = json['images'].sort((v1, v2) => {
                     return v1['index'] - v2['index']
                 });
                 self.setState({
-                    currentIndex: self.state.currentIndex,
+                    currentIndex: 0,
                     showList: self.state.showList,
-                    imageList: images
+                    imageList: images,
+                    volumeTitle: json['title'],
+                    comic_id: self.state.comic_id,
+                    volume_id: json['id']
                 });
             })
             .catch(function (err) {
@@ -99,42 +156,21 @@ class VolumeBrowser extends React.Component {
                 bottom: 0,
                 width: '50%'
             };
-            let clickRightElem;
-            if (this.all_volumes != undefined && this.current_index + 1 < this.all_volumes.length) {
-                let to = {
-                    pathname: `/comic/${this.comic_id}/${this.all_volumes[this.current_index + 1].title}`,
-                    query: {
-                        list: this.all_volumes,
-                        current: this.current_index + 1
-                    }
-                };
-                clickRightElem = <Link to={to} style={rightStyle}/>
-            } else {
-                clickRightElem = <div onClick={this.showNext} style={rightStyle}/>
-            }
-
-            let clickLeftElem;
-            if (this.all_volumes != undefined && this.current_index > 0) {
-                let to = {
-                    pathname: `/comic/${this.comic_id}/${this.all_volumes[this.current_index - 1].title}`,
-                    query: {
-                        list: this.all_volumes,
-                        current: this.current_index - 1
-                    }
-                };
-                clickLeftElem = <Link to={to} style={leftStyle}/>
-            } else {
-                clickLeftElem = <div onClick={this.showPrevious} style={leftStyle}/>
-            }
+            let clickRightElem = <div onClick={this.showNext} style={rightStyle}/>;
+            let clickLeftElem = <div onClick={this.showPrevious} style={leftStyle}/>;
             let imgStyle = {width: '100%', height: 'auto'};
             let bgStyle = {
                 // 'background-color': 'black'
             };
             elem = <MuiThemeProvider>
                 <div style={bgStyle}>
+                    <AppBar
+                        title={this.state.volumeTitle}
+                        iconElementLeft={<IconButton><NavigationBack onClick={this.props.history.goBack}/></IconButton>}
+                    />
+
                     <LinearProgress mode="determinate" value={this.state.currentIndex + 1}
                                     max={this.state.imageList.length}/>
-                    <label>{this.volume_id}</label>
                     <div>
                         <img src={this.state.imageList[this.state.currentIndex]['url']} style={imgStyle}/>
                     </div>
