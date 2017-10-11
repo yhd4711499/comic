@@ -116,11 +116,11 @@ def get_img(src):
 
 
 def to_base64(src):
-    return base64.b64encode(src.encode('utf-8')).decode('utf-8')
+    return base64.b64encode(src.encode('utf-8')).decode('utf-8').replace('/', '_')
 
 
 def from_base64(src):
-    return base64.b64decode(src).decode('utf-8')
+    return base64.b64decode(src.replace('_', '/')).decode('utf-8')
 
 
 get_comics()
