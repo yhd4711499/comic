@@ -20,14 +20,14 @@ class AllComics extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            volumes: [],
+            comics: [],
         };
         this.loadComics = this.loadComics.bind(this);
         this.onNewRequest = this.onNewRequest.bind(this);
     }
 
     onNewRequest(str, index) {
-        this.props.history.push(`/comic/${this.state.volumes[index].source.id}`)
+        this.props.history.push(`/comic/${this.state.comics[index].source.id}`)
     };
 
     loadComics() {
@@ -37,7 +37,9 @@ class AllComics extends React.Component {
             .then(function (res) {
                 let json = JSON.parse(res.text);
                 self.setState({
-                    volumes: json,
+                    comics: json.sort((v1, v2) => {
+                        return v2['lastUpdateTime'].localeCompare(v1['lastUpdateTime'])
+                    }),
                     dataSource: json
                 });
             })
@@ -57,12 +59,13 @@ class AllComics extends React.Component {
                     hintText="Search"
                     fullWidth={true}
                     onNewRequest={this.onNewRequest}
-                    dataSource={this.state.volumes.map((it) => it.title)}/>
+                    dataSource={this.state.comics.map((it) => it.title)}/>
                 <List>
                     {
-                        this.state.volumes.map(function (item) {
+                        this.state.comics.map(function (item) {
                             return <Link to={`/comic/${item.source.id}`}>
                                 <ComicCell
+                                    item={item}
                                     title={item.title}
                                     comic_id={item.source.id}
                                     author={item.author}>
