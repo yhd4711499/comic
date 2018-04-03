@@ -128,7 +128,6 @@ class ComicDownloader:
     def __consume_sync_stream_line(self):
         sync_stream_line = self.__streamLinePool.get_stream_line(Lines.SYNC)
         comic_stream_line = self.__streamLinePool.get_stream_line(Lines.COMIC)
-        task = None
         while True:
             try:
                 with sync_stream_line:
