@@ -57,7 +57,7 @@ def get_sidling_volume(action, comic_id, volume_id):
     comic_dir = id_comic_dir_map[comic_id]
     found = False
     last_volume_dir = None
-    for volume_dir in os.listdir(comic_dir):
+    for volume_dir in sorted(os.listdir(comic_dir)):
         if volume_dir == volume_id:
             found = True
             continue
@@ -80,7 +80,7 @@ def get_page_of_volume(comic_id, volume_id):
     comic_dir = id_comic_dir_map[comic_id]
     volume_dir = os.path.join(comic_dir, volume_title)
     host = 'http://' + request.host + '/'
-    for img_file in os.listdir(volume_dir):
+    for img_file in sorted(os.listdir(volume_dir)):
         img_file_abs = os.path.join(volume_dir, img_file)
         if (not img_file.startswith('.')) and os.path.isfile(img_file_abs):
             index = int(os.path.splitext(os.path.basename(img_file))[0])
@@ -100,7 +100,7 @@ def get_volume_of_comic(comic_id):
     volumes = []
     comic_dir = id_comic_dir_map[comic_id]
     comic_info = id_comic_info_map[comic_id]
-    for volume_dir in os.listdir(comic_dir):
+    for volume_dir in sorted(os.listdir(comic_dir)):
         if (not volume_dir.startswith('.')) and os.path.isdir(os.path.join(comic_dir, volume_dir)):
             volumes.append({"title": volume_dir, "id": to_base64(volume_dir)})
     return json.dumps({
