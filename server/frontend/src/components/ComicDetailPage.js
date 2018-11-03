@@ -73,7 +73,7 @@ class ComicDetailPage extends React.Component {
                     />
                     <List>
                         {[...new Array(this.state.volumes.length)].map((x, i) =>
-                            <Link to={this.getTo(i)}>
+                            <Link key={volumes[i].id} to={this.getTo(i)}>
                                 <VolumeCell title={volumes[i].title}/>
                             </Link>
                         )}

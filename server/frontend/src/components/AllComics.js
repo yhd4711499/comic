@@ -63,7 +63,7 @@ class AllComics extends React.Component {
                 <List>
                     {
                         this.state.comics.map(function (item) {
-                            return <Link to={`/comic/${item.source.id}`}>
+                            return <Link key={item.source.id} to={`/comic/${item.source.id}`}>
                                 <ComicCell
                                     item={item}
                                     title={item.title}
