@@ -128,6 +128,7 @@ class ComicDownloader:
     def __consume_sync_stream_line(self):
         sync_stream_line = self.__streamLinePool.get_stream_line(Lines.SYNC)
         comic_stream_line = self.__streamLinePool.get_stream_line(Lines.COMIC)
+        task = None
         while True:
             try:
                 with sync_stream_line:
@@ -201,7 +202,7 @@ class ComicDownloader:
                     }
                     comic_stream_line.put(comic_params)
             except Exception as e:
-                self.__handle_consume_error(e, comic_stream_line.name, task)
+                self.__handle_consume_error(e, sync_stream_line.name, task)
             finally:
                 self.__print_status()
 
@@ -243,7 +244,7 @@ class ComicDownloader:
                     for volume in volumes:
                         volume_stream_line.put(volume)
             except Exception as e:
-                self.__log.error("consume.", e)
+                self.__log.exception("consume: %s" % repr(task.bundle))
                 self.__handle_consume_error(e, comic_stream_line.name, task)
             finally:
                 self.__print_status()
@@ -340,13 +341,13 @@ class ComicDownloader:
                 self.__print_status()
 
     def __handle_consume_error(self, e, line_name, task):
-        # self.__log.error("failed!" + repr(task.bundle), e)
+        # self.__log.exception("failed!" + repr(task.bundle))
         if task is not None:
             stream_line = self.__streamLinePool.get_stream_line(line_name)
             if ComicDownloader.__error_can_retry(e):
                 stream_line.put_error(task)
             else:
-                self.__log.error("consume_" + line_name + " error!", e)
+                self.__log.exception("consume_" + line_name + " error!")
                 stream_line.put_failed(task)
 
     def __print_status(self):

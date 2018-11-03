@@ -10,6 +10,7 @@ class Task:
 
 class StreamLine:
     EOQ = 'End of queue'
+    markEnded = False
 
     def __init__(self, name, pending_length):
         self.workerCount = 0
@@ -48,10 +49,14 @@ class StreamLine:
         self.pendingQueue.put(Task(bundle))
 
     def mark_end(self):
+        self.markEnded = True
         self.pendingQueue.put(StreamLine.EOQ)
 
     def get_queue_size(self):
         return self.pendingQueue.qsize()
+
+    def is_empty(self):
+        return self.pendingQueue.qsize() == 0 or (self.markEnded and self.pendingQueue.qsize() == 1)
 
     def __enter__(self):
         with self.__lock:

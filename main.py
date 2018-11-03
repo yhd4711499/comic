@@ -14,7 +14,7 @@ def main():
                       help="print a lot of logs")
 
     parser.add_option("-s", "--source", dest="source",
-                      help="set source", default='dmeden.net')
+                      help="set source", default='huhudm.com')
 
     parser.add_option("--cli", "--cli", action="store_true", dest="cli",
                       help="enter cli mode")
@@ -64,7 +64,7 @@ def main():
             if 'source' in config and options.source is None:
                 options.source = config['source']
 
-    sources = [DmedenHost(config), Dm5Host(config), DmedenNetHost(config)]
+    sources = [DmedenHost(config), Dm5Host(config), HuhudmHost(config)]
 
     if options.source:
         for source in sources:

@@ -1,9 +1,10 @@
 import codecs
+import logging
 import os.path
 import re
+import urllib
 from datetime import datetime
 
-import urllib
 import js2py
 import pyquery
 import requests
@@ -13,48 +14,45 @@ from tzlocal import get_localzone
 from libs.comic_downloader import Host
 from .ComicInfo import ComicInfo
 from .StreamLine import *
-import logging
 
 UTF8_PARSER = HTMLParser(encoding='utf-8')
 
 
-class DmedenNetHost(Host):
+class HuhudmHost(Host):
     LOCAL_TZ = get_localzone()
-    BASE_URL = "http://www.popomh.com/"
+    BASE_URL = "http://www.huhudm.com/"
     SEARCH_URL = "comic/?act=search"
     VOLUME_URL_TEMPLATE_REGEX = re.compile('/(\d*)\.html')
-    VOLUME_URL_TEMPLATE = "manhua/%s.html"
+    VOLUME_URL_TEMPLATE = "huhu%s.html"
     VIEW_JS_URL_REGEX = re.compile('src=\"(.*?)\"')
     VIEW_JS_FILE_PATH = Host.DIR_PATH + '/view.js'
     DATETIME_FORMAT = '%Y/%m/%d %H:%M:%S'
 
-    HEADERS = {
-        'Cookie': 'ASP.NET_SessionId=lh1d0subwprouo550tqrhu55'
-    }
+    HEADERS = {}
 
     def __init__(self, config):
         super().__init__()
-        self.__config = config
+        self.__config = config or {}
         self.__proxy = None
         self.__viewJsCtx = None
         self.__viewJsCtxLock = Lock()
         self.__cookies = None
         self.__cookieGetLock = Lock()
-        self.__log = logging.getLogger("DmedenNet")
+        self.__log = logging.getLogger("huhudm")
 
     def id(self):
-        return 'dmeden.net'
+        return 'huhudm.com'
 
     def get_comic_url(self, params):
         if 'id' in params and params['id']:
-            return DmedenNetHost.BASE_URL + DmedenNetHost.VOLUME_URL_TEMPLATE % params['id']
+            return HuhudmHost.BASE_URL + HuhudmHost.VOLUME_URL_TEMPLATE % params['id']
         elif 'url' in params and params['url']:
-            return DmedenNetHost.BASE_URL + params['url']
+            return HuhudmHost.BASE_URL + params['url']
         raise Exception("get_comic_url failed! [id] or [url] is required!")
 
     def search(self, params):
         title = params['title']
-        r = self.request_html(url=DmedenNetHost.BASE_URL + DmedenNetHost.SEARCH_URL, params={'st': title})
+        r = self.request_html(url=HuhudmHost.BASE_URL + HuhudmHost.SEARCH_URL, params={'st': title})
         result = []
         for comicEntry in r('div.cComicList a'):
             result.append({
@@ -88,7 +86,7 @@ class DmedenNetHost(Host):
         return volumes[::-1]
 
     def fetch_all_pages_from_volume(self, volume_params, already_downloaded):
-        first_page_url = DmedenNetHost.BASE_URL + volume_params['url']
+        first_page_url = HuhudmHost.BASE_URL + volume_params['url']
         first_page = self.request_html(url=first_page_url)
 
         total_pages = len(first_page('div#iPageHtm a'))
@@ -101,7 +99,7 @@ class DmedenNetHost(Host):
                 i += 1
                 continue
 
-            page_url = re.sub(DmedenNetHost.VOLUME_URL_TEMPLATE_REGEX, "/%s.html" % (i + 1), first_page_url)
+            page_url = re.sub(HuhudmHost.VOLUME_URL_TEMPLATE_REGEX, "/%s.html" % (i + 1), first_page_url)
             page_params = {
                 'url': page_url,
                 'url_params': {},
@@ -134,52 +132,59 @@ class DmedenNetHost(Host):
         with self.__viewJsCtxLock:
             if self.__viewJsCtx is not None:
                 return self.__viewJsCtx
-            if os.path.isfile(DmedenNetHost.VIEW_JS_FILE_PATH):
-                with codecs.open(DmedenNetHost.VIEW_JS_FILE_PATH, "r", 'utf-8') as viewJsFile:
+            if os.path.isfile(HuhudmHost.VIEW_JS_FILE_PATH):
+                with codecs.open(HuhudmHost.VIEW_JS_FILE_PATH, "r", 'utf-8') as viewJsFile:
                     try:
                         self.__viewJsCtx = self.__create_js_context(viewJsFile.read())
                         return self.__viewJsCtx
                     except Exception as e:
-                        os.remove(DmedenNetHost.VIEW_JS_FILE_PATH)
-                        self.__log.error("failed to eval js: " + DmedenNetHost.VIEW_JS_FILE_PATH, e)
+                        os.remove(HuhudmHost.VIEW_JS_FILE_PATH)
+                        self.__log.error("failed to eval js: " + HuhudmHost.VIEW_JS_FILE_PATH, e)
                         raise e
             text = page.html()
-            view_js_url = DmedenNetHost.VIEW_JS_URL_REGEX.search(text).group(1)
-            js_content = self.request_raw(DmedenNetHost.BASE_URL + view_js_url, None)
-            with codecs.open(DmedenNetHost.VIEW_JS_FILE_PATH, "w", 'utf-8') as viewJsFile:
+            view_js_url = HuhudmHost.VIEW_JS_URL_REGEX.search(text).group(1)
+            js_content = self.request_raw(HuhudmHost.BASE_URL + view_js_url, None)
+            with codecs.open(HuhudmHost.VIEW_JS_FILE_PATH, "w", 'utf-8') as viewJsFile:
                 viewJsFile.write(js_content)
             self.__viewJsCtx = self.__create_js_context(js_content)
             return self.__viewJsCtx
 
     def request(self, url, stream=False, params=None, timeout=10):
         self.__get_cookies()
-        return requests.get(proxies=self.__proxy, url=url, stream=stream, params=params, timeout=timeout, headers=DmedenNetHost.HEADERS, cookies=self.__cookies)
+        return requests.get(proxies=self.__proxy, url=url, stream=stream, params=params, timeout=timeout,
+                            headers=HuhudmHost.HEADERS, cookies=self.__cookies)
 
     def request_raw(self, url, params=None, stream=False, timeout=10):
         self.__get_cookies()
-        r = requests.get(proxies=self.__proxy, url=url, stream=stream, params=params, timeout=10, headers=DmedenNetHost.HEADERS, cookies=self.__cookies)
+        r = requests.get(proxies=self.__proxy, url=url, stream=stream, params=params, timeout=10,
+                         headers=HuhudmHost.HEADERS, cookies=self.__cookies)
         r.encoding = 'utf-8'
         r.raise_for_status()
         return r.text
 
     def request_html(self, url, params=None, timeout=10, parser=UTF8_PARSER):
         self.__get_cookies()
-        r = requests.get(proxies=self.__proxy, url=url, params=params, timeout=timeout, headers=DmedenNetHost.HEADERS, cookies=self.__cookies)
+        r = requests.get(proxies=self.__proxy, url=url, params=params, timeout=timeout, headers=HuhudmHost.HEADERS,
+                         cookies=self.__cookies)
         r.raise_for_status()
         return pyquery.PyQuery(fromstring(r.content, parser=parser))
 
     def __get_cookies(self):
         with self.__cookieGetLock:
             if self.__cookies is None:
-                proxy = self.__config['proxy']
+                if 'proxy' in self.__config:
+                    proxy = self.__config['proxy']
+                else:
+                    proxy = None
+
                 if proxy is None:
                     proxy = urllib.request.getproxies()
                 elif not proxy['enabled']:
                     proxy = None
-                r = requests.get(proxies=proxy, url=DmedenNetHost.BASE_URL)
-                DmedenNetHost.HEADERS['Cookie'] = None
+                r = requests.get(url=HuhudmHost.BASE_URL, proxies=proxy)
+                HuhudmHost.HEADERS['Cookie'] = None
                 self.__cookies = r.cookies
-                if self.__config['proxy_strategy'] == 'ALL':
+                if 'proxy_strategy' in self.__config and self.__config['proxy_strategy'] == 'ALL':
                     self.__proxy = proxy
                 else:
                     self.__proxy = None
@@ -189,7 +194,7 @@ class DmedenNetHost(Host):
         info = ComicInfo()
         info.title = lines[0]
         info.source = {
-            'host': 'dmeden',
+            'host': 'huhudm.com',
             'id': re.search('(\\d*).htm', url).group(1)
         }
         try:
@@ -202,8 +207,8 @@ class DmedenNetHost(Host):
             info.finished = raw['状态'] == '完结'
             info.rating = float(raw['评价'])
 
-            info.lastUpdateTime = datetime.strptime(raw['更新'], DmedenNetHost.DATETIME_FORMAT)
-            info.lastUpdateTime = info.lastUpdateTime.replace(tzinfo=DmedenNetHost.LOCAL_TZ)
+            info.lastUpdateTime = datetime.strptime(raw['更新'], HuhudmHost.DATETIME_FORMAT)
+            info.lastUpdateTime = info.lastUpdateTime.replace(tzinfo=HuhudmHost.LOCAL_TZ)
             info.brief = raw['简介']
         except Exception as e:
             print(e)

@@ -1,10 +1,10 @@
 {
-  "root_dir": "~/Downloads/Manga/",
-  "source": "dmeden.net",
-  "proxy" : {
+  "proxy": {
     "enabled": false,
     "http": "socks5://127.0.0.1:1080",
     "https": "socks5://127.0.0.1:1080"
   },
-  "proxy_strategy" : "ONLY_FOR_COOKIE"
+  "source": "huhudm.com",
+  "root_dir": "~/Downloads/Manga/",
+  "proxy_strategy": "ONLY_FOR_COOKIE"
 }
