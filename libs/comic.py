@@ -218,7 +218,7 @@ class SingleDownloadStage(ComicStage):
     def on_turn_started(self):
         session = self.get_query()
         history = session.query(SaveHistory.folder).order_by(SaveHistory.update_dt.desc()).limit(3)
-        input_msg = "Where to save (ends with '/' to save into folder named by title. leave blank to choose the first history."
+        input_msg = "Where to save (leave blank to choose the first history):\n"
         default = None
         if history.count() != 0:
             default = history[0].folder
@@ -246,8 +246,8 @@ class SingleDownloadStage(ComicStage):
         SaveHistory.upsert(session, save_dir)
         session.commit()
 
-        if save_dir.endswith('/'):
-            save_dir += title
+        # if save_dir.endswith('/'):
+        #     save_dir += title
 
         s = input("[%s] will be saved to [%s]\npress %s to continue, or %sancel...\n"
                   % (c(title, bcolors.BOLD), c(os.path.abspath(save_dir), bcolors.BOLD), c("ENTER", optionColor),
@@ -275,7 +275,7 @@ class BatchDownloadStage(ComicStage):
 
     def on_turn_started(self):
         self.input = input(
-            "Where to save (ends with '/' to save into folder named by title. leave blank to go back): \n")
+            "Where to save (leave blank to go back): \n")
 
     def on_response(self):
         if not os.path.isdir(self.input):
@@ -289,10 +289,10 @@ class BatchDownloadStage(ComicStage):
             return
         params = []
         for item in self.items:
-            title = item['title']
+            # title = item['title']
             save_dir = self.input
-            if save_dir.endswith('/'):
-                save_dir += title
+            # if save_dir.endswith('/'):
+            #     save_dir += title
             params.append({
                 'save_dir': save_dir,
                 'url': item['url']
