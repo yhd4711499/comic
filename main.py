@@ -85,6 +85,16 @@ def main():
         MainStage(downloader).enter(ctx)
         return
 
+    if options.id is not None and re.compile("\d*\.\.\d*").match(options.id):
+        r = options.id.split(".")
+        start = int(r[0])
+        end = int(r[2])
+        tasks = []
+        for i in range(start, end):
+            tasks.append({'save_dir': os.path.expanduser(args[0]), 'id': str(i)})
+        downloader.download(tasks, options.mode)
+        return
+
     if options.id is not None or options.url is not None:
         if len(args) == 0:
             print("error: output dir is missing!")

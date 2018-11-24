@@ -4,6 +4,7 @@ import os.path
 import re
 from datetime import datetime
 
+import requests
 from lxml.html import HTMLParser
 from tzlocal import get_localzone
 
@@ -356,8 +357,8 @@ class ComicDownloader:
     # noinspection PyUnusedLocal
     @staticmethod
     def __error_can_retry(e):
-        return True
-        # return isinstance(e, requests.exceptions.Timeout) or 'timed out' in str(e)
+        # return True
+        return isinstance(e, requests.exceptions.Timeout) or 'timed out' in str(e)
 
     @staticmethod
     def __save_comic_info(info, root_dir):
